@@ -47,7 +47,7 @@ public class PartidaTorneioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(novaPartida);
     }
 
-   ///s 4 - Atualizar partida
+   // 4 - Atualizar partida
     @PutMapping("/{id}")
     public ResponseEntity<PartidaTorneio> atualizar(
             @PathVariable Long id,
@@ -79,5 +79,42 @@ public class PartidaTorneioController {
         repository.deleteById(id);
 
         return ResponseEntity.noContent().build();
+    }
+    // 6 - Declarar resultado da partida
+    @PatchMapping("/{id}/declarar-resultado")
+    public ResponseEntity<?> declararResultado(@PathVariable Long id, @RequestBody PartidaTorneio dados) {
+
+        Optional<PartidaTorneio> partidaExistente = repository.findById(id);
+
+        if (partidaExistente.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        PartidaTorneio partida = partidaExistente.get();
+
+        if (partida.getFinalizada()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Esta partida já foi concluída e não permite alterações.");
+        }
+
+        String resultado = dados.getVencedor();
+
+        if (!resultado.equals("BRANCAS") && !resultado.equals("NEGRAS") && !resultado.equals("EMPATE")) {
+
+            return ResponseEntity.badRequest()
+                    .body("Opção de vencedor inválida! Use BRANCAS, NEGRAS ou EMPATE.");
+        }
+
+        if (dados.getTempoGastoMinutos() == null || dados.getTempoGastoMinutos() <= 0) {
+
+            return ResponseEntity.badRequest()
+                    .body("O tempo gasto deve ser maior que zero.");
+        }
+
+        partida.setVencedor(resultado);
+        partida.setTempoGastoMinutos(dados.getTempoGastoMinutos());
+        partida.setFinalizada(true);
+
+        return ResponseEntity.ok(repository.save(partida));
     }
 }
